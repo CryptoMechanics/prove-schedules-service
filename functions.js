@@ -144,23 +144,25 @@ const submitTx = (signedTx, chain, retry_trx_num_blocks=null) => {
 
 
 async function proveSchedules(chains){
-  console.log("\nGetting schedule proofs for", chains[0].name, "->", chains[1].name)
-  const proofs1 = await getScheduleProofs(chains[0],chains[1]);
-  console.log("Schedule proofs", proofs1);
-  if (proofs1.length){
-    const signedTx = await chains[1].wallet.transact({actions: proofs1}, {broadcast:false, expireSeconds:360, blocksBehind:3});
-    const tx = await submitTx(signedTx, chains[1], 2);
-    console.log("tx1", tx.processed.id)
-  }
+  try{
+    console.log("\nGetting schedule proofs for", chains[0].name, "->", chains[1].name)
+    const proofs1 = await getScheduleProofs(chains[0],chains[1]);
+    console.log("Schedule proofs", proofs1);
+    if (proofs1.length){
+      const signedTx = await chains[1].wallet.transact({actions: proofs1}, {broadcast:false, expireSeconds:360, blocksBehind:3});
+      const tx = await submitTx(signedTx, chains[1], 2);
+      console.log("tx1", tx.processed.id)
+    }
 
-  console.log("\nGetting schedule proofs for", chains[1].name, "->", chains[0].name)
-  const proofs2 = await getScheduleProofs(chains[1],chains[0]);
-  console.log("Schedule proofs", proofs2);
-  if (proofs2.length){
-    const signedTx = await chains[0].wallet.transact({actions: proofs2}, {broadcast:false, expireSeconds:360, blocksBehind:3});
-    const tx = await submitTx(signedTx, chains[0], 2);
-    console.log("tx2", tx.processed.id)
-  }
+    console.log("\nGetting schedule proofs for", chains[1].name, "->", chains[0].name)
+    const proofs2 = await getScheduleProofs(chains[1],chains[0]);
+    console.log("Schedule proofs", proofs2);
+    if (proofs2.length){
+      const signedTx = await chains[0].wallet.transact({actions: proofs2}, {broadcast:false, expireSeconds:360, blocksBehind:3});
+      const tx = await submitTx(signedTx, chains[0], 2);
+      console.log("tx2", tx.processed.id)
+    }
+  }catch(ex){console.log("proveSchedules ex",ex)}
 }
 
 module.exports = {
