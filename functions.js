@@ -1,5 +1,10 @@
 const axios = require("axios");
-
+const WebSocket = require('ws')
+const arrayToHex = data => {
+  let result = '';
+  for (const x of data)  result += ('00' + x.toString(16)).slice(-2);
+  return result.toUpperCase();
+};
 const getScheduleProofs = async (sourceChain, destinationChain) => {
   const lib = (await axios.get(`${sourceChain.nodeUrl}/v1/chain/get_info`)).data.last_irreversible_block_num;
 
@@ -25,7 +30,7 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
       //detect active schedule change
       while (max_block - min_block > 1) {
         blocknum = Math.round((max_block + min_block) / 2);
-        header = await $.post(sourceAPIURL + "/get_block", JSON.stringify({"block_num_or_id":blocknum,"json": true}));
+        header = (await axios.post(sourceAPIURL + "/get_block", JSON.stringify({"block_num_or_id":blocknum,"json": true}))).data;
         if (header.schedule_version < target_schedule) min_block = blocknum;
         else max_block = blocknum;
       }
@@ -33,7 +38,7 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
       //search before active schedule change for new_producer_schedule 
       let bCount = 0; //since header already checked once above
       while (blocknum < max_block && !("new_producer_schedule" in header)) {
-        header = await $.post(sourceAPIURL + "/get_block", JSON.stringify({"block_num_or_id":blocknum,"json": true}));
+        header = (await axios.post(sourceAPIURL + "/get_block", JSON.stringify({"block_num_or_id":blocknum,"json": true}))).data;
         bCount++;
         blocknum++;
       }
@@ -63,7 +68,7 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
   while (schedule_version > last_proven_schedule_version) {
     let block_num = await getProducerScheduleBlock(schedule_block);
     if (!block_num) return; //should never occur
-    var proof = await getProof({block_to_prove: block_num});
+    var proof = await getProof(sourceChain, destinationChain,{block_to_prove: block_num});
     schedule_version = proof.data.blockproof.blocktoprove.block.header.schedule_version;
     schedule_block = block_num;
     proofs.unshift(proof);
@@ -72,11 +77,12 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
   return proofs;
 };
 
-const getProof = ({type="heavyProof", block_to_prove, action}) => {
+const getProof = (sourceChain, destinationChain,{type="heavyProof", block_to_prove, action}) => {
   return new Promise(resolve=>{
     //initialize socket to proof server
     const ws = new WebSocket(sourceChain.proofSocket);
-    ws.addEventListener('open', (event) => {
+    ws.on('open', (event) => {
+      console.log("opened")
       // connected to websocket server
       const query = { type, block_to_prove };
       if (action) query.action_receipt = action.receipt;
@@ -84,8 +90,8 @@ const getProof = ({type="heavyProof", block_to_prove, action}) => {
     });
 
     //messages from websocket server
-    ws.addEventListener('message', (event) => {
-      const res = JSON.parse(event.data);
+    ws.on('message', (data) => {
+      const res = JSON.parse(data);
       //log non-progress messages from ibc server
       if (res.type !=='progress') console.log("Received message from ibc proof server", res);
       if (res.type !=='proof') return;
@@ -93,10 +99,10 @@ const getProof = ({type="heavyProof", block_to_prove, action}) => {
 
       //handle issue/withdraw if proving transfer/retire 's emitxfer action, else submit block proof to bridge directly (for schedules)
       const actionToSubmit = { 
-        authorization: [destinationChain.auth],
+        authorization: destinationChain.authorization,
         name: !action ? "checkproofd" : tokenRow.native ? "issuea" : "withdrawa",
         account: !action ? destinationChain.bridgeContract : tokenRow.native ? tokenRow.pairedWrapTokenContract : tokenRow.wrapLockContract,
-        data: { ...res.proof, prover: destinationChain.auth.actor } 
+        data: { ...res.proof, prover: destinationChain.authorization[0].actor } 
       };
 
       //if proving an action, add action and formatted receipt to actionproof object
@@ -120,13 +126,14 @@ const getProof = ({type="heavyProof", block_to_prove, action}) => {
 }
 
 const submitTx = (signedTx, chain, retry_trx_num_blocks=null) => {
+  // console.log(signedTx)
   let mandel = chain.version >=3;
   let url = `${chain.nodeUrl}/v1/chain/send_transaction`;
   let obj = {
     transaction: {
       signatures: signedTx.signatures,
       compression: signedTx.compression || false,
-      packed_trx: arrayToHex(signedTx.resolved.serializedTransaction),
+      packed_trx: arrayToHex(signedTx.serializedTransaction),
       packed_context_free_data: null
     }
   }
@@ -145,24 +152,35 @@ const submitTx = (signedTx, chain, retry_trx_num_blocks=null) => {
 
 async function proveSchedules(chains){
   try{
-    console.log("\nGetting schedule proofs for", chains[0].name, "->", chains[1].name)
+    // console.log("\nGetting schedule proofs for", chains[0].name, "->", chains[1].name)
     const proofs1 = await getScheduleProofs(chains[0],chains[1]);
     console.log("Schedule proofs", proofs1);
     if (proofs1.length){
-      const signedTx = await chains[1].wallet.transact({actions: proofs1}, {broadcast:false, expireSeconds:360, blocksBehind:3});
-      const tx = await submitTx(signedTx, chains[1], 2);
-      console.log("tx1", tx.processed.id)
+
+      const signedTx = chains[1].wallet.transact({actions: proofs1}, {expireSeconds:120, broadcast:true,blocksBehind:3 }).then(re=>{
+        console.log("re",re)
+      }).catch(errr=>{
+        console.log("errr",errr)
+      });
+      // const signedTx = await chains[0].wallet.transact({actions: proofs1}, {broadcast:false, expireSeconds:360, blocksBehind:3});
+      // const tx = await submitTx(signedTx, chains[0], 2);
+      // console.log("tx1", tx.processed.id)
     }
 
     console.log("\nGetting schedule proofs for", chains[1].name, "->", chains[0].name)
     const proofs2 = await getScheduleProofs(chains[1],chains[0]);
     console.log("Schedule proofs", proofs2);
     if (proofs2.length){
-      const signedTx = await chains[0].wallet.transact({actions: proofs2}, {broadcast:false, expireSeconds:360, blocksBehind:3});
-      const tx = await submitTx(signedTx, chains[0], 2);
-      console.log("tx2", tx.processed.id)
+      const signedTx = chains[0].wallet.transact({actions: proofs2}, {expireSeconds:120, broadcast:true,blocksBehind:3 }).then(re=>{
+        console.log("re",re)
+      }).catch(errr=>{
+        console.log("errr",errr)
+      });
+      // console.log("signedTx", signedTx)
+      // const tx = await submitTx(signedTx, chains[0], 1);
+      // console.log("tx2", tx.processed.id)
     }
-  }catch(ex){console.log("proveSchedules ex",ex)}
+  }catch(ex){console.log("proveSchedules ex",JSON.stringify(ex))}
 }
 
 module.exports = {

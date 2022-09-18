@@ -1,4 +1,4 @@
-const interval = 15 * 60 * 1000; //15mins
+const interval = 2 * 60 * 1000; //2mins
 
 require("dotenv").config();
 const { Api, JsonRpc } = require("eosjs");
@@ -30,7 +30,7 @@ const chains = [{
 //initialize chain wallets
 for (var chain of chains){
   //initialize wallet rpc
-  const signatureProvider = new JsSignatureProvider([process.env[chain.name] || "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"]);
+  const signatureProvider = new JsSignatureProvider([process.env[chain.name]]);
   const rpc = new JsonRpc(chain.nodeUrl, { fetch });
   chain.wallet = new Api({
     rpc,
