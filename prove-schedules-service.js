@@ -36,7 +36,7 @@ const chains = [{
   wallet:null
 },{
   chainId: '5002d6813ffe275d9471a7e3a301eab91c36e8017f9664b8431fbf0e812a0b04',
-  nodeUrl: 'https://test.ux.eosusa.io',
+  nodeUrl: 'https://testnet.uxnetwork.io',
   name: "uxpubtestnet",
   label: "UX Public Testnet",
   proofSocket: "wss://testnet-ibc.uxnetwork.io",

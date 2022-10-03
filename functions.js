@@ -7,7 +7,6 @@ const arrayToHex = data => {
 };
 const getScheduleProofs = async (sourceChain, destinationChain) => {
   const lib = (await axios.get(`${sourceChain.nodeUrl}/v1/chain/get_info`)).data.last_irreversible_block_num;
-  console.log("lib",lib)
   async function getProducerScheduleBlock(blocknum) {
     try{
       const sourceAPIURL = sourceChain.nodeUrl+"/v1/chain";
@@ -156,7 +155,7 @@ async function proveSchedules(chains){
   if(running) return;
   running = true;
   for (var sourceChain of chains) for (var destinationChain of chains.filter(c=>c.name!==sourceChain.name)){
-    console.log(`Checking ${sourceChain.name} -> ${destinationChain.name}`)
+    console.log(`\nChecking ${sourceChain.name} -> ${destinationChain.name}`)
       const proofs = await getScheduleProofs(sourceChain,destinationChain);
     if (proofs.length) {
       let tx, scheduleVersion;
@@ -172,6 +171,7 @@ async function proveSchedules(chains){
     }
   }
   running = false;
+  console.log("-------------------------------------------------")
 }
 
 module.exports = {
