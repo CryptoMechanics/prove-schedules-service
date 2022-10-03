@@ -7,7 +7,7 @@ const arrayToHex = data => {
 };
 const getScheduleProofs = async (sourceChain, destinationChain) => {
   const lib = (await axios.get(`${sourceChain.nodeUrl}/v1/chain/get_info`)).data.last_irreversible_block_num;
-
+  console.log("lib",lib)
   async function getProducerScheduleBlock(blocknum) {
     try{
       const sourceAPIURL = sourceChain.nodeUrl+"/v1/chain";
@@ -23,8 +23,8 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
         limit: 1, reverse: true, show_payer: false, json: true
       }))).data;
 
-      if (lastBlockProved) min_block = lastBlockProved.rows[0].block_height;
-
+      if (lastBlockProved && lastBlockProved.rows[0]) min_block = lastBlockProved.rows[0].block_height;
+      else min_block= 193057018
       let max_block = blocknum;
       
       //detect active schedule change
@@ -33,16 +33,19 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
         header = (await axios.post(sourceAPIURL + "/get_block", JSON.stringify({"block_num_or_id":blocknum,"json": true}))).data;
         if (header.schedule_version < target_schedule) min_block = blocknum;
         else max_block = blocknum;
+        // console.log("min-max",min_block,max_block)
       }
       if (blocknum > 337) blocknum -= 337;
       //search before active schedule change for new_producer_schedule 
       let bCount = 0; //since header already checked once above
-      while (blocknum < max_block && !("new_producer_schedule" in header)) {
+      while (blocknum < max_block && (!("new_producer_schedule" in header) && !header.new_producers)) {
         header = (await axios.post(sourceAPIURL + "/get_block", JSON.stringify({"block_num_or_id":blocknum,"json": true}))).data;
         bCount++;
         blocknum++;
       }
-      blocknum--;
+      // console.log("header",header)
+      blocknum=header.block_num;
+      console.log("blocknum with header change",blocknum)
       return blocknum;  
     }catch(ex){ console.log("getProducerScheduleBlock ex",ex); return null;}
   }
@@ -54,9 +57,10 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
     scope: sourceChain.name,
     limit: 1, reverse: true, show_payer: false, json: true
   }))).data;
+
   
   var last_proven_schedule_version = 0;
-  if (bridgeScheduleData.rows.length > 0) last_proven_schedule_version = bridgeScheduleData.rows[0].producer_schedule.version;
+  if (bridgeScheduleData.rows.length > 0) last_proven_schedule_version = bridgeScheduleData.rows[0].version;
   if (!last_proven_schedule_version) return console.log('No Schedule Found in Contract!');
   console.log("Last proved source schedule:",last_proven_schedule_version);
 
@@ -82,7 +86,6 @@ const getProof = (sourceChain, destinationChain,{type="heavyProof", block_to_pro
     //initialize socket to proof server
     const ws = new WebSocket(sourceChain.proofSocket);
     ws.on('open', (event) => {
-      console.log("opened")
       // connected to websocket server
       const query = { type, block_to_prove };
       if (action) query.action_receipt = action.receipt;
@@ -93,7 +96,7 @@ const getProof = (sourceChain, destinationChain,{type="heavyProof", block_to_pro
     ws.on('message', (data) => {
       const res = JSON.parse(data);
       //log non-progress messages from ibc server
-      if (res.type !=='progress') console.log("Received message from ibc proof server", res);
+      // if (res.type !=='progress') console.log("Received message from ibc proof server", res);
       if (res.type !=='proof') return;
       ws.close();
 
@@ -149,38 +152,27 @@ const submitTx = (signedTx, chain, retry_trx_num_blocks=null) => {
   return axios.post(url, JSON.stringify(obj));
 }
 
-
+let running = false;
 async function proveSchedules(chains){
-  try{
-    // console.log("\nGetting schedule proofs for", chains[0].name, "->", chains[1].name)
-    const proofs1 = await getScheduleProofs(chains[0],chains[1]);
-    console.log("Schedule proofs", proofs1);
-    if (proofs1.length){
-
-      const signedTx = chains[1].wallet.transact({actions: proofs1}, {expireSeconds:120, broadcast:true,blocksBehind:3 }).then(re=>{
-        console.log("re",re)
-      }).catch(errr=>{
-        console.log("errr",errr)
-      });
-      // const signedTx = await chains[0].wallet.transact({actions: proofs1}, {broadcast:false, expireSeconds:360, blocksBehind:3});
-      // const tx = await submitTx(signedTx, chains[0], 2);
-      // console.log("tx1", tx.processed.id)
+  if(running) return;
+  running = true;
+  for (var sourceChain of chains) for (var destinationChain of chains.filter(c=>c.name!==sourceChain.name)){
+    console.log(`Checking ${sourceChain.name} -> ${destinationChain.name}`)
+      const proofs = await getScheduleProofs(sourceChain,destinationChain);
+    if (proofs.length) {
+      let tx, scheduleVersion;
+      for (var p of proofs){
+        try{
+          const tx = await destinationChain.wallet.transact({actions: [p]}, {expireSeconds:120, broadcast:true,blocksBehind:3 });
+          scheduleVersion = p.data.blockproof.blocktoprove.block.header.schedule_version + 1;
+          console.log(`Proved ${sourceChain.name} schedule (${scheduleVersion}) on ${destinationChain.name}`, tx.processed.id);
+        }catch(ex){
+          console.log(`Error proving ${sourceChain.name} schedule (${scheduleVersion}) on ${destinationChain.name}`, ex)
+        }
+      }
     }
-
-    console.log("\nGetting schedule proofs for", chains[1].name, "->", chains[0].name)
-    const proofs2 = await getScheduleProofs(chains[1],chains[0]);
-    console.log("Schedule proofs", proofs2);
-    if (proofs2.length){
-      const signedTx = chains[0].wallet.transact({actions: proofs2}, {expireSeconds:120, broadcast:true,blocksBehind:3 }).then(re=>{
-        console.log("re",re)
-      }).catch(errr=>{
-        console.log("errr",errr)
-      });
-      // console.log("signedTx", signedTx)
-      // const tx = await submitTx(signedTx, chains[0], 1);
-      // console.log("tx2", tx.processed.id)
-    }
-  }catch(ex){console.log("proveSchedules ex",JSON.stringify(ex))}
+  }
+  running = false;
 }
 
 module.exports = {

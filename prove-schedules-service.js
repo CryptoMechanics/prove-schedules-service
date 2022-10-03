@@ -1,4 +1,4 @@
-const interval = 2 * 60 * 1000; //2mins
+const interval = 2 * 60 * 1000; //10mins
 
 require("dotenv").config();
 const { Api, JsonRpc } = require("eosjs");
@@ -12,7 +12,7 @@ const chains = [{
   nodeUrl: 'https://jungle4.api.eosnation.io', //api supporting send_transaction2
   name: "jungle4",
   proofSocket: "wss://jungle4-ibc.goldenplatform.com",
-  bridgeContract:"antelopeibc1",
+  bridgeContract:"antelopeibc2",
   authorization: [{actor:"nonamesfound", permission:"active"}],
   version:3.1, //Can fetch from get_info
   wallet:null
@@ -21,9 +21,36 @@ const chains = [{
   nodeUrl: 'https://kylin.api.eosnation.io', //api supporting send_transaction2
   name: "kylin",
   proofSocket: "wss://kylin-ibc.goldenplatform.com",
-  bridgeContract:"antelopeibc1",
+  bridgeContract:"antelopeibc2",
   authorization: [{actor:"brokenblocks", permission:"active"}],
   version:3.1, //Can fetch from get_info
+  wallet:null
+},{
+  chainId: '1eaa0824707c8c16bd25145493bf062aecddfeb56c736f6ba6397f3195f33c9f',
+  nodeUrl: 'https://test.telos.eosusa.io',
+  name: "telostestnet",
+  label: "Telos Testnet",
+  proofSocket: "wss://telos-testnet-ibc.goldenplatform.com",
+  authorization: [{actor:"brokenblocks", permission:"active"}],
+  bridgeContract:"antelopeibc2",
+  wallet:null
+},{
+  chainId: '5002d6813ffe275d9471a7e3a301eab91c36e8017f9664b8431fbf0e812a0b04',
+  nodeUrl: 'https://test.ux.eosusa.io',
+  name: "uxpubtestnet",
+  label: "UX Public Testnet",
+  proofSocket: "wss://testnet-ibc.uxnetwork.io",
+  authorization: [{actor:"shaq", permission:"active"}],
+  bridgeContract:"antelopeibc2",
+  wallet:null
+},{
+  chainId: 'f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12',
+  nodeUrl: 'https://test.wax.eosusa.io',
+  name: "waxtestnet",
+  label: "WAX Testnet",
+  proofSocket: "wss://wax-testnet-ibc.goldenplatform.com",
+  authorization: [{actor:"brokenblocks", permission:"active"}],
+  bridgeContract:"antelopeibc2",
   wallet:null
 }];
 
