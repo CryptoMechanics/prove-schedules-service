@@ -24,7 +24,6 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
       }))).data;
 
       if (lastBlockProved && lastBlockProved.rows[0]) min_block = lastBlockProved.rows[0].block_height;
-      else min_block= 193057018
       let max_block = blocknum;
       
       //detect active schedule change
