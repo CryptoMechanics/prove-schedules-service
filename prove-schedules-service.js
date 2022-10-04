@@ -9,7 +9,8 @@ const { proveSchedules } = require("./functions");
 
 const chains = [{
   chainId: '73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d',
-  nodeUrl: 'https://jungle4.api.eosnation.io', //api supporting send_transaction2
+  nodeUrl: 'https://jungle.eosusa.io',
+  // nodeUrl: 'https://jungle4.api.eosnation.io', //api supporting send_transaction2
   name: "jungle4",
   proofSocket: "wss://jungle4-ibc.goldenplatform.com",
   bridgeContract:"antelopeibc2",
@@ -18,7 +19,8 @@ const chains = [{
   wallet:null
 },{
   chainId: '5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191',
-  nodeUrl: 'https://kylin.api.eosnation.io', //api supporting send_transaction2
+  nodeUrl: 'https://kylin.eosusa.io',
+  // nodeUrl: 'https://kylin.api.eosnation.io', //api supporting send_transaction2
   name: "kylin",
   proofSocket: "wss://kylin-ibc.goldenplatform.com",
   bridgeContract:"antelopeibc2",

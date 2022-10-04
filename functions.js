@@ -165,7 +165,9 @@ async function proveSchedules(chains){
           scheduleVersion = p.data.blockproof.blocktoprove.block.header.schedule_version + 1;
           console.log(`Proved ${sourceChain.name} schedule (${scheduleVersion}) on ${destinationChain.name}`, tx.processed.id);
         }catch(ex){
-          console.log(`Error proving ${sourceChain.name} schedule (${scheduleVersion}) on ${destinationChain.name}`, ex)
+          break;
+          console.log(`Error proving ${sourceChain.name} schedule (${scheduleVersion}) on ${destinationChain.name}`, ex);
+
         }
       }
     }
