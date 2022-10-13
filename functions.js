@@ -155,21 +155,27 @@ async function proveSchedules(chains){
   if(running) return;
   running = true;
   for (var sourceChain of chains) for (var destinationChain of chains.filter(c=>c.name!==sourceChain.name)){
-    console.log(`\nChecking ${sourceChain.name} -> ${destinationChain.name}`)
-      const proofs = await getScheduleProofs(sourceChain,destinationChain);
-    if (proofs.length) {
-      let tx, scheduleVersion;
-      for (var p of proofs){
-        try{
-          const tx = await destinationChain.wallet.transact({actions: [p]}, {expireSeconds:120, broadcast:true,blocksBehind:3 });
-          scheduleVersion = p.data.blockproof.blocktoprove.block.header.schedule_version + 1;
-          console.log(`Proved ${sourceChain.name} schedule (${scheduleVersion}) on ${destinationChain.name}`, tx.processed.id);
-        }catch(ex){
-          break;
-          console.log(`Error proving ${sourceChain.name} schedule (${scheduleVersion}) on ${destinationChain.name}`, ex);
+    try{
 
+      console.log(`\nChecking ${sourceChain.name} -> ${destinationChain.name}`)
+      const proofs = await getScheduleProofs(sourceChain,destinationChain);
+      if (proofs.length) {
+        let tx, scheduleVersion;
+        for (var p of proofs){
+          try{
+            const tx = await destinationChain.wallet.transact({actions: [p]}, {expireSeconds:120, broadcast:true,blocksBehind:3 });
+            scheduleVersion = p.data.blockproof.blocktoprove.block.header.schedule_version + 1;
+            console.log(`Proved ${sourceChain.name} schedule (${scheduleVersion}) on ${destinationChain.name}`, tx.processed.id);
+          }catch(ex){
+            console.log(`Error proving ${sourceChain.name} schedule (${scheduleVersion}) on ${destinationChain.name}`, ex);
+            break;
+
+          }
         }
       }
+    }catch(ex){
+      running = false;
+
     }
   }
   running = false;
