@@ -32,7 +32,8 @@ const chains = [{
   nodeUrl: 'https://test.telos.eosusa.io',
   name: "telostestnet",
   label: "Telos Testnet",
-  proofSocket: "wss://telos-testnet-ibc.goldenplatform.com",
+  // proofSocket: "wss://telos-testnet-ibc.goldenplatform.com",
+  proofSocket: "ws://176.9.30.19:10006",
   authorization: [{actor:"brokenblocks", permission:"active"}],
   bridgeContract:"antelopeibc2",
   wallet:null

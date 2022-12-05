@@ -7,11 +7,13 @@ const arrayToHex = data => {
 };
 const getScheduleProofs = async (sourceChain, destinationChain) => {
   const lib = (await axios.get(`${sourceChain.nodeUrl}/v1/chain/get_info`)).data.last_irreversible_block_num;
-  async function getProducerScheduleBlock(blocknum) {
+  
+  async function getProducerScheduleBlock(blocknum) {//205538929
     try{
       const sourceAPIURL = sourceChain.nodeUrl+"/v1/chain";
       var header = (await axios.post(sourceAPIURL + "/get_block", JSON.stringify({"block_num_or_id":blocknum,"json": true}))).data;
       let target_schedule = header.schedule_version;
+      console.log("target_schedule",target_schedule)
       
       let min_block = 2;
       //fetch last proved block to use as min block for schedule change search 
@@ -22,17 +24,31 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
         limit: 1, reverse: true, show_payer: false, json: true
       }))).data;
 
+      
+
       if (lastBlockProved && lastBlockProved.rows[0]) min_block = lastBlockProved.rows[0].block_height;
+
+      console.log("min_block",min_block)//205531789
+
       let max_block = blocknum;
       
       //detect active schedule change
       while (max_block - min_block > 1) {
         blocknum = Math.round((max_block + min_block) / 2);
+        console.log("\navg block_num", blocknum)
         header = (await axios.post(sourceAPIURL + "/get_block", JSON.stringify({"block_num_or_id":blocknum,"json": true}))).data;
-        if (header.schedule_version < target_schedule) min_block = blocknum;
+        console.log("header.schedule_version", header.schedule_version)
+        console.log("target_schedule", target_schedule)
+        if (header.schedule_version < target_schedule) {
+          console.log("header.schedule_version is less than target_schedule")
+          min_block = blocknum;
+        }
         else max_block = blocknum;
-        // console.log("min-max",min_block,max_block)
+        console.log("min-max",min_block,max_block)
       }
+      console.log("\n###########################")
+      console.log("blocknum to search backwards from", blocknum)
+      console.log("###########################")
       if (blocknum > 337) blocknum -= 337;
       //search before active schedule change for new_producer_schedule 
       let bCount = 0; //since header already checked once above
@@ -42,7 +58,19 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
         blocknum++;
       }
       // console.log("header",header)
-      blocknum=header.block_num;
+      if (("new_producer_schedule" in header) || header.new_producers){
+        console.log("found schedule change in previous 337 blocks")
+        blocknum=header.block_num;
+      }
+      else{
+        blocknum -= 337;
+        console.log("blocknum with change is before ",blocknum)
+        while ((!("new_producer_schedule" in header) && !header.new_producers)) {
+          header = (await axios.post(sourceAPIURL + "/get_block", JSON.stringify({"block_num_or_id":blocknum,"json": true}))).data;
+          blocknum--;
+        }
+        blocknum=header.block_num;
+      }
       console.log("blocknum with header change",blocknum)
       return blocknum;  
     }catch(ex){ console.log("getProducerScheduleBlock ex",ex); return null;}
