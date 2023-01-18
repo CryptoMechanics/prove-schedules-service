@@ -99,6 +99,9 @@ const getScheduleProofs = async (sourceChain, destinationChain) => {
     let block_num = await getProducerScheduleBlock(schedule_block);
     if (!block_num) return; //should never occur
     var proof = await getProof(sourceChain, destinationChain,{block_to_prove: block_num});
+    if (!proof){
+      return null;
+    }
     schedule_version = proof.data.blockproof.blocktoprove.block.header.schedule_version;
     schedule_block = block_num;
     proofs.unshift(proof);
@@ -111,6 +114,12 @@ const getProof = (sourceChain, destinationChain,{type="heavyProof", block_to_pro
   return new Promise(resolve=>{
     //initialize socket to proof server
     const ws = new WebSocket(sourceChain.proofSocket);
+
+    ws.on('error', error=>{
+      console.log("error",error)
+      resolve(null)
+    });
+
     ws.on('open', (event) => {
       // connected to websocket server
       const query = { type, block_to_prove };
@@ -151,6 +160,7 @@ const getProof = (sourceChain, destinationChain,{type="heavyProof", block_to_pro
       }
       resolve(actionToSubmit);
     });
+
   });
 }
 
@@ -187,8 +197,8 @@ async function proveSchedules(chains){
 
       console.log(`\nChecking ${sourceChain.name} -> ${destinationChain.name}`)
       const proofs = await getScheduleProofs(sourceChain,destinationChain);
-      if (proofs.length) {
-        let tx, scheduleVersion;
+      if (proofs && proofs.length) {
+        let scheduleVersion;
         for (var p of proofs){
           try{
             const tx = await destinationChain.wallet.transact({actions: [p]}, {expireSeconds:120, broadcast:true,blocksBehind:3 });
@@ -197,13 +207,11 @@ async function proveSchedules(chains){
           }catch(ex){
             console.log(`Error proving ${sourceChain.name} schedule (${scheduleVersion}) on ${destinationChain.name}`, ex);
             break;
-
           }
         }
       }
     }catch(ex){
       running = false;
-
     }
   }
   running = false;
