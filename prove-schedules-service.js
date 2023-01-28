@@ -8,52 +8,31 @@ const { TextEncoder, TextDecoder } = require("util");
 const { proveSchedules } = require("./functions");
 
 const chains = [{
-  chainId: '73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d',
-  nodeUrl: 'https://jungle.eosusa.io',
-  // nodeUrl: 'https://jungle4.api.eosnation.io', //api supporting send_transaction2
-  name: "jungle4",
-  proofSocket: "wss://jungle4-ibc.goldenplatform.com",
-  bridgeContract:"antelopeibc2",
-  authorization: [{actor:"nonamesfound", permission:"active"}],
-  version:3.1, //Can fetch from get_info
+  chainId: '8fc6dce7942189f842170de953932b1f66693ad3788f766e777b6f9d22335c02',
+  nodeUrl: 'https://api.uxnetwork.io',
+  name: "ux",
+  label: "UX",
+  proofSocket: "wss://ibc-server.uxnetwork.io/ux",
+  authorization: [{actor:"ibcschedserv", permission:"active"}],
+  bridgeContract:"ibc.prove",
   wallet:null
 },{
-  chainId: '5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191',
-  nodeUrl: 'https://kylin.eosusa.io',
-  // nodeUrl: 'https://kylin.api.eosnation.io', //api supporting send_transaction2
-  name: "kylin",
-  proofSocket: "wss://kylin-ibc.goldenplatform.com",
-  bridgeContract:"antelopeibc2",
-  authorization: [{actor:"brokenblocks", permission:"active"}],
-  version:3.1, //Can fetch from get_info
+  chainId: 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',
+  nodeUrl: 'https://eos.api.eosnation.io',
+  name: "eos",
+  label: "EOS",
+  proofSocket: "wss://ibc-server.uxnetwork.io/eos",
+  authorization: [{actor:"ibcschedserv", permission:"active"}],
+  bridgeContract:"ibc.prove",
   wallet:null
 },{
-  chainId: '1eaa0824707c8c16bd25145493bf062aecddfeb56c736f6ba6397f3195f33c9f',
-  nodeUrl: 'https://test.telos.eosusa.io',
-  name: "telostestnet",
-  label: "Telos Testnet",
-  // proofSocket: "wss://telos-testnet-ibc.goldenplatform.com",
-  proofSocket: "ws://176.9.30.19:10006",
-  authorization: [{actor:"brokenblocks", permission:"active"}],
-  bridgeContract:"antelopeibc2",
-  wallet:null
-},{
-  chainId: '5002d6813ffe275d9471a7e3a301eab91c36e8017f9664b8431fbf0e812a0b04',
-  nodeUrl: 'https://testnet.uxnetwork.io',
-  name: "uxpubtestnet",
-  label: "UX Public Testnet",
-  proofSocket: "wss://testnet-ibc.uxnetwork.io",
-  authorization: [{actor:"shaq", permission:"active"}],
-  bridgeContract:"antelopeibc2",
-  wallet:null
-},{
-  chainId: 'f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12',
-  nodeUrl: 'https://test.wax.eosusa.io',
-  name: "waxtestnet",
-  label: "WAX Testnet",
-  proofSocket: "wss://wax-testnet-ibc.goldenplatform.com",
-  authorization: [{actor:"brokenblocks", permission:"active"}],
-  bridgeContract:"antelopeibc2",
+  chainId: '4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11',
+  nodeUrl: 'https://telos.api.eosnation.io',
+  name: "tlos",
+  label: "Telos",
+  proofSocket: "wss://ibc-server.uxnetwork.io/telos",
+  authorization: [{actor:"ibcschedserv", permission:"active"}],
+  bridgeContract:"ibc.prove",
   wallet:null
 }];
 
