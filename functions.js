@@ -194,7 +194,8 @@ async function proveSchedules(chains){
   running = true;
   for (var sourceChain of chains) for (var destinationChain of chains.filter(c=>c.name!==sourceChain.name)){
     try{
-
+      if (destinationChain.name==='wax') continue;
+      if (sourceChain.name==='wax' && destinationChain.name!=='ux') continue;
       console.log(`\nChecking ${sourceChain.name} -> ${destinationChain.name}`)
       const proofs = await getScheduleProofs(sourceChain,destinationChain);
       if (proofs && proofs.length) {

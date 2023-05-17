@@ -34,20 +34,30 @@ const chains = [{
   authorization: [{actor:"ibcschedserv", permission:"active"}],
   bridgeContract:"ibc.prove",
   wallet:null
+},{
+  chainId: '1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4',
+  nodeUrl: 'https://wax.api.eosnation.io',
+  name: "wax",
+  label: "WAX",
+  proofSocket: "wss://ibc-server.uxnetwork.io/wax",
+  authorization: [{actor:"ibcschedserv", permission:"active"}],
+  bridgeContract:"ibc.prove",
+  wallet:null
 }];
 
 //initialize chain wallets
 for (var chain of chains){
   //initialize wallet rpc
-  const signatureProvider = new JsSignatureProvider([process.env[chain.name]]);
   const rpc = new JsonRpc(chain.nodeUrl, { fetch });
-  chain.wallet = new Api({
+  let apiObj = {
     rpc,
-    signatureProvider,
     textDecoder: new TextDecoder(),
     textEncoder: new TextEncoder(),
     chainId: chain.chainId,
-  });
+  };
+
+  if (chain.name !== 'wax') apiObj.signatureProvider = new JsSignatureProvider([process.env[chain.name]]);
+  chain.wallet = new Api(apiObj);
 }
 
 console.log("Intialized chain wallets")
